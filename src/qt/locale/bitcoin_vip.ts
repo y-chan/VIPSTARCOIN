@@ -1881,6 +1881,15 @@
         <source>Copy amount</source>
         <translation>総額のコピー</translation>
     </message>
+    <message>
+        <source>Bech32 addresses (BIP-173) are cheaper to spend from and offer better protection against typos. When unchecked a legacy address will be created, compatible with older wallets.</source>
+        <translation>Bech32形式(BIP-173を参照)のアドレスを利用するとアドレスからの出金時に安い手数料で済み、また誤入力の可能性を減らすことができます。チェックを外すと、古いウォレットと互換性を保つことができる従来のアドレスが作られます。</translation>
+    </message>
+    <message>
+        <source>Generate Bech32 address</source>
+        <translation>Bech32形式のアドレスを生成</translation>
+    </message>
+
 </context>
 <context>
     <name>ReceiveRequestDialog</name>

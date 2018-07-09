@@ -2437,6 +2437,16 @@
         <source>Copy amount</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location line="+1"/>
+        <source>Bech32 addresses (BIP-173) are cheaper to spend from and offer better protection against typos. When unchecked a legacy address will be created, compatible with older wallets.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Generate Bech32 address</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ReceiveRequestDialog</name>

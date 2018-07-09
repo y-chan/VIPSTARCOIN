@@ -35,7 +35,7 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="3" rowspan="9">
+        <item row="2" column="3" rowspan="10">
          <widget class="QRImageWidget" name="lblQRCode">
           <property name="minimumSize">
            <size>
@@ -201,14 +201,24 @@
           </property>
          </widget>
         </item>
-        <item row="9" column="0">
+        <item row="9" column="2">
+         <widget class="QCheckBox" name="useBech32">
+          <property name="toolTip">
+           <string>Bech32 addresses (BIP-173) are cheaper to spend from and offer better protection against typos. When unchecked a legacy address will be created, compatible with older wallets.</string>
+          </property>
+          <property name="text">
+           <string>Generate Bech32 address</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
            <string/>
           </property>
          </widget>
         </item>
-        <item row="9" column="2">
+        <item row="10" column="2">
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
            <widget class="QPushButton" name="receiveButton">

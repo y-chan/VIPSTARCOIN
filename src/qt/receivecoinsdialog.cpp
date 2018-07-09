@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "wallet/wallet.h"
 #include "receivecoinsdialog.h"
 #include "ui_receivecoinsdialog.h"
 
@@ -48,6 +49,12 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
     ui->refreshButton->setIcon(platformStyle->SingleColorIcon(":/movies/spinner-010"));
     ui->refreshButton->setVisible(false);
     ui->leAddress->setReadOnly(true);
+    // configure bech32 checkbox, disable if launched with legacy as default:
+    if (model->getDefaultAddressType() == OUTPUT_TYPE_BECH32) {
+        ui->useBech32->setCheckState(Qt::Checked);
+    } else {
+        ui->useBech32->setCheckState(Qt::Unchecked);
+    }
 
     // context menu actions
     QAction *copyURIAction = new QAction(tr("Copy URI"), this);
@@ -146,6 +153,17 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
 
     QString address;
     QString label = ui->reqLabel->text();
+    /* Generate new receiving address */
+    OutputType address_type;
+    if (ui->useBech32->isChecked()) {
+        address_type = OUTPUT_TYPE_BECH32;
+    } else {
+        address_type = model->getDefaultAddressType();
+        if (address_type == OUTPUT_TYPE_BECH32) {
+            address_type = OUTPUT_TYPE_P2SH_SEGWIT;
+        }
+    }
+
     if(ui->reuseAddress->isChecked())
     {
         /* Use selected address*/
@@ -169,7 +187,7 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
         }
     } else {
         /* Generate new receiving address */
-        address = model->getAddressTableModel()->addRow(AddressTableModel::Receive, label, "");
+        address = model->getAddressTableModel()->addRow(AddressTableModel::Receive, label, "", address_type);
     }
     SendCoinsRecipient info(address, label,
         ui->reqAmount->value(), ui->reqMessage->text());

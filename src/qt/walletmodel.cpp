@@ -918,3 +918,7 @@ bool WalletModel::isMineAddress(const std::string &strAddress)
     return true;
 }
 
+OutputType WalletModel::getDefaultAddressType() const
+{
+    return g_address_type;
+}

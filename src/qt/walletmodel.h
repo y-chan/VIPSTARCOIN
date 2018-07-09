@@ -15,6 +15,8 @@
 
 #include <QObject>
 
+enum OutputType : int;
+
 class AddressTableModel;
 class OptionsModel;
 class PlatformStyle;
@@ -241,6 +243,8 @@ public:
     std::vector<CTokenInfo> getInvalidTokens();
 
     bool isMineAddress(const std::string &strAddress);
+
+    OutputType getDefaultAddressType() const;
 
 private:
     CWallet *wallet;
