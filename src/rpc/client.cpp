@@ -164,6 +164,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listcontracts", 1, "maxDisplay" },
     { "getstorage", 2, "index" },
     { "getstorage", 1, "blockNum" },
+    { "addwitnessaddress", 1, "p2sh" },
     // Echo with conversion (For testing only)
     { "echojson", 0, "arg0" },
     { "echojson", 1, "arg1" },

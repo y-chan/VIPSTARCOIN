@@ -1590,7 +1590,9 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
 class Witnessifier : public boost::static_visitor<bool>
 {
 public:
-    CScriptID result;
+    CTxDestination result;
+    bool already_witness;
+    explicit Witnessifier() : already_witness(false) {}
 
     bool operator()(const CKeyID &keyID) {
         CPubKey pubkey;
@@ -1601,9 +1603,7 @@ public:
             if (typ != ISMINE_SPENDABLE && typ != ISMINE_WATCH_SOLVABLE)
                 return false;
             CScript witscript = GetScriptForWitness(basescript);
-            pwalletMain->AddCScript(witscript);
-            result = CScriptID(witscript);
-            return true;
+            return ExtractDestination(witscript, result);
         }
         return false;
     }
@@ -1614,7 +1614,8 @@ public:
             int witnessversion;
             std::vector<unsigned char> witprog;
             if (subscript.IsWitnessProgram(witnessversion, witprog)) {
-                result = scriptID;
+                ExtractDestination(subscript, result);
+                already_witness = true;
                 return true;
             }
             isminetype typ;
@@ -1622,11 +1623,23 @@ public:
             if (typ != ISMINE_SPENDABLE && typ != ISMINE_WATCH_SOLVABLE)
                 return false;
             CScript witscript = GetScriptForWitness(subscript);
-            pwalletMain->AddCScript(witscript);
-            result = CScriptID(witscript);
-            return true;
+            return ExtractDestination(witscript, result);
         }
         return false;
+    }
+
+    bool operator()(const WitnessV0KeyHash& id)
+    {
+        already_witness = true;
+        result = id;
+        return true;
+    }
+
+    bool operator()(const WitnessV0ScriptHash& id)
+    {
+        already_witness = true;
+        result = id;
+        return true;
     }
 
     template<typename T>
@@ -1638,17 +1651,18 @@ UniValue addwitnessaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
     {
-        string msg = "addwitnessaddress \"address\"\n"
+        string msg = "addwitnessaddress \"address\" ( p2sh )\n"
             "\nAdd a witness address for a script (with pubkey or redeemscript known).\n"
             "It returns the witness script.\n"
 
             "\nArguments:\n"
             "1. \"address\"       (string, required) An address known to the wallet\n"
+            "2. p2sh            (bool, optional, default=true) Embed inside P2SH\n"
 
             "\nResult:\n"
-            "\"witnessaddress\",  (string) The value of the new address (P2SH of witness script).\n"
+            "\"witnessaddress\",  (string) The value of the new address (P2SH or BIP173).\n"
             "}\n"
         ;
         throw runtime_error(msg);
@@ -1666,13 +1680,31 @@ UniValue addwitnessaddress(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid VIPSTARCOIN address");
     }
 
+    bool p2sh = true;
+    if (!request.params[1].isNull()) {
+        p2sh = request.params[1].get_bool();
+    }
+
     Witnessifier w;
     bool ret = boost::apply_visitor(w, dest);
     if (!ret) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Public key or redeemscript not known to wallet, or the key is uncompressed");
     }
 
-    pwalletMain->SetAddressBook(w.result, "", "receive");
+    CScript witprogram = GetScriptForDestination(w.result);
+
+    if (p2sh) {
+        w.result = CScriptID(witprogram);
+    }
+
+    if (w.already_witness) {
+        if (!(dest == w.result)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Cannot convert between witness address types");
+        }
+    } else {
+        pwalletMain->AddCScript(witprogram);
+        pwalletMain->SetAddressBook(w.result, "", "receive");
+    }
 
     return EncodeDestination(w.result);
 }
@@ -3644,7 +3676,7 @@ static const CRPCCommand commands[] =
         { "hidden",             "resendwallettransactions", &resendwallettransactions, true,   {} },
         { "wallet",             "abandontransaction",       &abandontransaction,       false,  {"txid"} },
         { "wallet",             "addmultisigaddress",       &addmultisigaddress,       true,   {"nrequired","keys","account"} },
-        { "wallet",             "addwitnessaddress",        &addwitnessaddress,        true,   {"address"} },
+        { "wallet",             "addwitnessaddress",        &addwitnessaddress,        true,   {"address","p2sh"} },
         { "wallet",             "backupwallet",             &backupwallet,             true,   {"destination"} },
         { "wallet",             "bumpfee",                  &bumpfee,                  true,   {"txid", "options"} },
         { "wallet",             "dumpprivkey",              &dumpprivkey,              true,   {"address"}  },
