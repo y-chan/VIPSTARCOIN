@@ -149,14 +149,14 @@ UniValue getnewaddress(const JSONRPCRequest& request)
 }
 
 
-CTxDestination GetAccountAddress(string strAccount, bool bForceNew=false)
+CTxDestination GetAccountDestination(string strAccount, bool bForceNew=false)
 {
-    CPubKey pubKey;
-    if (!pwalletMain->GetAccountPubkey(pubKey, strAccount, bForceNew)) {
+    CTxDestination dest;
+    if (!pwalletMain->GetAccountDestination(dest, strAccount, bForceNew)) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
-    return pubKey.GetID();
+    return dest;
 }
 
 UniValue getaccountaddress(const JSONRPCRequest& request)
@@ -186,7 +186,7 @@ UniValue getaccountaddress(const JSONRPCRequest& request)
 
     UniValue ret(UniValue::VSTR);
 
-    ret = EncodeDestination(GetAccountAddress(strAccount));
+    ret = EncodeDestination(GetAccountDestination(strAccount));
     return ret;
 }
 
@@ -261,8 +261,8 @@ UniValue setaccount(const JSONRPCRequest& request)
         if (pwalletMain->mapAddressBook.count(dest))
         {
             string strOldAccount = pwalletMain->mapAddressBook[dest].name;
-            if (dest == GetAccountAddress(strOldAccount))
-                GetAccountAddress(strOldAccount, true);
+            if (dest == GetAccountDestination(strOldAccount))
+                GetAccountDestination(strOldAccount, true);
         }
         pwalletMain->SetAddressBook(dest, strAccount, "receive");
     }
