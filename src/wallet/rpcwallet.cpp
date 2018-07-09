@@ -1592,8 +1592,6 @@ class Witnessifier : public boost::static_visitor<bool>
 public:
     CScriptID result;
 
-    bool operator()(const CNoDestination &dest) const { return false; }
-
     bool operator()(const CKeyID &keyID) {
         CPubKey pubkey;
         if (pwalletMain) {
@@ -1630,6 +1628,9 @@ public:
         }
         return false;
     }
+
+    template<typename T>
+    bool operator()(const T& dest) { return false; }
 };
 
 UniValue addwitnessaddress(const JSONRPCRequest& request)
