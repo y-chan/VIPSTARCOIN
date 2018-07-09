@@ -112,14 +112,15 @@ UniValue getnewaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() > 1)
+    if (request.fHelp || request.params.size() > 2)
         throw runtime_error(
-            "getnewaddress ( \"account\" )\n"
+            "getnewaddress ( \"account\" \"address_type\" )\n"
             "\nReturns a new VIPSTARCOIN address for receiving payments.\n"
             "If 'account' is specified (DEPRECATED), it is added to the address book \n"
             "so payments received with the address will be credited to 'account'.\n"
             "\nArguments:\n"
             "1. \"account\"        (string, optional) DEPRECATED. The account name for the address to be linked to. If not provided, the default account \"\" is used. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created if there is no account by the given name.\n"
+            "2. \"address_type\"   (string, optional) The address type to use. Options are \"legacy\", \"p2sh\", and \"bech32\". Default is set by -addresstype.\n"
             "\nResult:\n"
             "\"address\"    (string) The new VIPSTARCOIN address\n"
             "\nExamples:\n"
@@ -134,6 +135,14 @@ UniValue getnewaddress(const JSONRPCRequest& request)
     if (request.params.size() > 0)
         strAccount = AccountFromValue(request.params[0]);
 
+    OutputType output_type = g_address_type;
+    if (!request.params[1].isNull()) {
+        output_type = ParseOutputType(request.params[1].get_str(), g_address_type);
+        if (output_type == OUTPUT_TYPE_NONE) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[1].get_str()));
+        }
+    }
+
     if (!pwalletMain->IsLocked())
         pwalletMain->TopUpKeyPool();
 
@@ -141,11 +150,13 @@ UniValue getnewaddress(const JSONRPCRequest& request)
     CPubKey newKey;
     if (!pwalletMain->GetKeyFromPool(newKey))
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
-    CKeyID keyID = newKey.GetID();
 
-    pwalletMain->SetAddressBook(keyID, strAccount, "receive");
+    pwalletMain->LearnRelatedScripts(newKey, output_type);
+    CTxDestination dest = GetDestinationForKey(newKey, output_type);
 
-    return EncodeDestination(keyID);
+    pwalletMain->SetAddressBook(dest, strAccount, "receive");
+
+    return EncodeDestination(dest);
 }
 
 
@@ -198,9 +209,11 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 1)
         throw runtime_error(
-            "getrawchangeaddress\n"
+            "getrawchangeaddress ( \"address_type\" )\n"
             "\nReturns a new VIPSTARCOIN address, for receiving change.\n"
             "This is for use with raw transactions, NOT normal use.\n"
+            "\nArguments:\n"
+            "1. \"address_type\"           (string, optional) The address type to use. Options are \"legacy\", \"p2sh\", and \"bech32\". Default is set by -changetype.\n"
             "\nResult:\n"
             "\"address\"    (string) The address\n"
             "\nExamples:\n"
@@ -213,6 +226,14 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
     if (!pwalletMain->IsLocked())
         pwalletMain->TopUpKeyPool();
 
+    OutputType output_type = g_change_type;
+    if (!request.params[0].isNull()) {
+        output_type = ParseOutputType(request.params[0].get_str(), g_change_type);
+        if (output_type == OUTPUT_TYPE_NONE) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[0].get_str()));
+        }
+    }
+
     CReserveKey reservekey(pwalletMain);
     CPubKey vchPubKey;
     if (!reservekey.GetReservedKey(vchPubKey))
@@ -220,9 +241,10 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     reservekey.KeepKey();
 
-    CKeyID keyID = vchPubKey.GetID();
+    pwalletMain->LearnRelatedScripts(vchPubKey, output_type);
+    CTxDestination dest = GetDestinationForKey(vchPubKey, output_type);
 
-    return EncodeDestination(keyID);
+    return EncodeDestination(dest);
 }
 
 
@@ -1580,11 +1602,12 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
 
     // Construct using pay-to-script-hash:
     CScript inner = _createmultisig_redeemScript(request.params);
-    CScriptID innerID(inner);
     pwalletMain->AddCScript(inner);
 
-    pwalletMain->SetAddressBook(innerID, strAccount, "send");
-    return EncodeDestination(innerID);
+    CTxDestination dest = pwalletMain->AddAndGetDestinationForScript(inner, g_address_type);
+
+    pwalletMain->SetAddressBook(dest, strAccount, "send");
+    return EncodeDestination(dest);
 }
 
 class Witnessifier : public boost::static_visitor<bool>
@@ -3684,8 +3707,8 @@ static const CRPCCommand commands[] =
         { "wallet",             "getaccount",               &getaccount,               true,   {"address"} },
         { "wallet",             "getaddressesbyaccount",    &getaddressesbyaccount,    true,   {"account"} },
         { "wallet",             "getbalance",               &getbalance,               false,  {"account","minconf","include_watchonly"} },
-        { "wallet",             "getnewaddress",            &getnewaddress,            true,   {"account"} },
-        { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true,   {} },
+        { "wallet",             "getnewaddress",            &getnewaddress,            true,   {"account","address_type"} },
+        { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true,   {"address_type"} },
         { "wallet",             "getreceivedbyaccount",     &getreceivedbyaccount,     false,  {"account","minconf"} },
         { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false,  {"address","minconf"} },
         { "wallet",             "gettransaction",           &gettransaction,           false,  {"txid","include_watchonly", "waitconf"} },

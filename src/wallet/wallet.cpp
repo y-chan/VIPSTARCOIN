@@ -45,6 +45,8 @@ bool bZeroBalanceAddressToken = DEFAULT_ZERO_BALANCE_ADDRESS_TOKEN;
 bool fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;
 bool fWalletRbf = DEFAULT_WALLET_RBF;
 bool fNotUseChangeAddress = DEFAULT_NOT_USE_CHANGE_ADDRESS;
+OutputType g_address_type = OUTPUT_TYPE_NONE;
+OutputType g_change_type = OUTPUT_TYPE_NONE;
 
 const char * DEFAULT_WALLET_DAT = "wallet.dat";
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
@@ -1037,9 +1039,9 @@ bool CWallet::GetAccountDestination(CTxDestination &dest, std::string strAccount
         if (!account.vchPubKey.IsValid())
             bForceNew = true;
         else {
-            // Check if the current key has been used
-            CScript scriptPubKey = GetScriptForDestination(account.vchPubKey.GetID());
-            for (map<uint256, CWalletTx>::iterator it = mapWallet.begin();
+            // Check if the current key has been used (TODO: check other addresses with the same key)
+            CScript scriptPubKey = GetScriptForDestination(GetDestinationForKey(account.vchPubKey, g_address_type));
+            for (std::map<uint256, CWalletTx>::iterator it = mapWallet.begin();
                  it != mapWallet.end() && account.vchPubKey.IsValid();
                  ++it)
                 BOOST_FOREACH(const CTxOut& txout, (*it).second.tx->vout)
@@ -1055,11 +1057,12 @@ bool CWallet::GetAccountDestination(CTxDestination &dest, std::string strAccount
         if (!GetKeyFromPool(account.vchPubKey))
             return false;
 
-        dest = account.vchPubKey.GetID();
+        LearnRelatedScripts(account.vchPubKey, g_address_type);
+        dest = GetDestinationForKey(account.vchPubKey, g_address_type);
         SetAddressBook(dest, strAccount, "receive");
         walletdb.WriteAccount(strAccount, account);
     } else {
-        dest = account.vchPubKey.GetID();
+        dest = GetDestinationForKey(account.vchPubKey, g_address_type);
     }
 
     return true;
@@ -2901,7 +2904,8 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                                 return false;
                             }
 
-                            scriptChange = GetScriptForDestination(vchPubKey.GetID());
+                            LearnRelatedScripts(vchPubKey, g_change_type);
+                            scriptChange = GetScriptForDestination(GetDestinationForKey(vchPubKey, g_change_type));
                         }
                     }
 
@@ -4187,6 +4191,8 @@ bool CWallet::GetDestData(const CTxDestination &dest, const std::string &key, st
 std::string CWallet::GetWalletHelpString(bool showDebug)
 {
     std::string strUsage = HelpMessageGroup(_("Wallet options:"));
+    strUsage += HelpMessageOpt("-addresstype", strprintf(_("What type of addresses to use (\"legacy\", \"p2sh-segwit\", or \"bech32\", default: \"%s\")"), FormatOutputType(OUTPUT_TYPE_DEFAULT)));
+    strUsage += HelpMessageOpt("-changetype", _("What type of change to use (\"legacy\", \"p2sh-segwit\", or \"bech32\", default is same as -addresstype)"));
     strUsage += HelpMessageOpt("-disablewallet", _("Do not load the wallet and disable wallet RPC calls"));
     strUsage += HelpMessageOpt("-keypool=<n>", strprintf(_("Set key pool size to <n> (default: %u)"), DEFAULT_KEYPOOL_SIZE));
     strUsage += HelpMessageOpt("-fallbackfee=<amt>", strprintf(_("A fee rate (in %s/kB) that will be used when fee estimation has insufficient data (default: %s)"),
@@ -4527,6 +4533,16 @@ bool CWallet::ParameterInteraction()
 
     if (fSendFreeTransactions && GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) <= 0)
         return InitError("Creation of free transactions with their relay disabled is not supported.");
+
+    g_address_type = ParseOutputType(GetArg("-addresstype", ""));
+    if (g_address_type == OUTPUT_TYPE_NONE) {
+        return InitError(strprintf(_("Unknown address type '%s'"), GetArg("-addresstype", "")));
+    }
+
+    g_change_type = ParseOutputType(GetArg("-changetype", ""), g_address_type);
+    if (g_change_type == OUTPUT_TYPE_NONE) {
+        return InitError(strprintf(_("Unknown change type '%s'"), GetArg("-changetype", "")));
+    }
 
     return true;
 }
@@ -4883,4 +4899,107 @@ bool CWallet::LoadContractData(const string &address, const string &key, const s
         ret = false;
     }
     return ret;
+}
+
+static const std::string OUTPUT_TYPE_STRING_LEGACY = "legacy";
+static const std::string OUTPUT_TYPE_STRING_P2SH_SEGWIT = "p2sh-segwit";
+static const std::string OUTPUT_TYPE_STRING_BECH32 = "bech32";
+
+OutputType ParseOutputType(const std::string& type, OutputType default_type)
+{
+    if (type.empty()) {
+        return default_type;
+    } else if (type == OUTPUT_TYPE_STRING_LEGACY) {
+        return OUTPUT_TYPE_LEGACY;
+    } else if (type == OUTPUT_TYPE_STRING_P2SH_SEGWIT) {
+        return OUTPUT_TYPE_P2SH_SEGWIT;
+    } else if (type == OUTPUT_TYPE_STRING_BECH32) {
+        return OUTPUT_TYPE_BECH32;
+    } else {
+        return OUTPUT_TYPE_NONE;
+    }
+}
+
+const std::string& FormatOutputType(OutputType type)
+{
+    switch (type) {
+    case OUTPUT_TYPE_LEGACY: return OUTPUT_TYPE_STRING_LEGACY;
+    case OUTPUT_TYPE_P2SH_SEGWIT: return OUTPUT_TYPE_STRING_P2SH_SEGWIT;
+    case OUTPUT_TYPE_BECH32: return OUTPUT_TYPE_STRING_BECH32;
+    default: assert(false);
+    }
+}
+
+void CWallet::LearnRelatedScripts(const CPubKey& key, OutputType type)
+{
+    if (key.IsCompressed() && (type == OUTPUT_TYPE_P2SH_SEGWIT || type == OUTPUT_TYPE_BECH32)) {
+        CTxDestination witdest = WitnessV0KeyHash(key.GetID());
+        CScript witprog = GetScriptForDestination(witdest);
+        // Make sure the resulting program is solvable.
+        assert(IsSolvable(*this, witprog));
+        AddCScript(witprog);
+    }
+}
+
+void CWallet::LearnAllRelatedScripts(const CPubKey& key)
+{
+    // OUTPUT_TYPE_P2SH_SEGWIT always adds all necessary scripts for all types.
+    LearnRelatedScripts(key, OUTPUT_TYPE_P2SH_SEGWIT);
+}
+
+CTxDestination GetDestinationForKey(const CPubKey& key, OutputType type)
+{
+    switch (type) {
+    case OUTPUT_TYPE_LEGACY: return key.GetID();
+    case OUTPUT_TYPE_P2SH_SEGWIT:
+    case OUTPUT_TYPE_BECH32: {
+        if (!key.IsCompressed()) return key.GetID();
+        CTxDestination witdest = WitnessV0KeyHash(key.GetID());
+        CScript witprog = GetScriptForDestination(witdest);
+        if (type == OUTPUT_TYPE_P2SH_SEGWIT) {
+            return CScriptID(witprog);
+        } else {
+            return witdest;
+        }
+    }
+    default: assert(false);
+    }
+}
+
+std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key)
+{
+    CKeyID keyid = key.GetID();
+    if (key.IsCompressed()) {
+        CTxDestination segwit = WitnessV0KeyHash(keyid);
+        CTxDestination p2sh = CScriptID(GetScriptForDestination(segwit));
+        return std::vector<CTxDestination>{std::move(keyid), std::move(p2sh), std::move(segwit)};
+    } else {
+        return std::vector<CTxDestination>{std::move(keyid)};
+    }
+}
+
+CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, OutputType type)
+{
+    // Note that scripts over 520 bytes are not yet supported.
+    switch (type) {
+    case OUTPUT_TYPE_LEGACY:
+        return CScriptID(script);
+    case OUTPUT_TYPE_P2SH_SEGWIT:
+    case OUTPUT_TYPE_BECH32: {
+        WitnessV0ScriptHash hash;
+        CSHA256().Write(script.data(), script.size()).Finalize(hash.begin());
+        CTxDestination witdest = hash;
+        CScript witprog = GetScriptForDestination(witdest);
+        // Check if the resulting program is solvable (i.e. doesn't use an uncompressed key)
+        if (!IsSolvable(*this, witprog)) return CScriptID(script);
+        // Add the redeemscript, so that P2WSH and P2SH-P2WSH outputs are recognized as ours.
+        AddCScript(witprog);
+        if (type == OUTPUT_TYPE_BECH32) {
+            return witdest;
+        } else {
+            return CScriptID(witprog);
+        }
+    }
+    default: assert(false);
+    }
 }
