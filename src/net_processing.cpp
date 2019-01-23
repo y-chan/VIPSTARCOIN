@@ -160,8 +160,8 @@ public:
         maxSize(0),
         maxAvg(0)
     {
-        maxSize = gArgs.GetArg("-headerspamfiltermaxsize", DEFAULT_HEADER_SPAM_FILTER_MAX_SIZE);
-        maxAvg = gArgs.GetArg("-headerspamfiltermaxavg", DEFAULT_HEADER_SPAM_FILTER_MAX_AVG);
+        maxSize = GetArg("-headerspamfiltermaxsize", DEFAULT_HEADER_SPAM_FILTER_MAX_SIZE);
+        maxAvg = GetArg("-headerspamfiltermaxavg", DEFAULT_HEADER_SPAM_FILTER_MAX_AVG);
     }
 
     bool addHeaders(const CBlockIndex *pindexFirst, const CBlockIndex *pindexLast)
@@ -339,13 +339,13 @@ CNodeState *State(NodeId pnode) {
 
 bool ProcessNetBlockHeaders(CNode* pfrom, const std::vector<CBlockHeader>& block, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex=nullptr, CBlockHeader *first_invalid=nullptr)
 {
-    const CBlockIndex *pindexFirst = nullptr;
+    const CBlockIndex *pindexFirst = NULL;
     bool ret = ProcessNewBlockHeaders(block, state, chainparams, ppindex, first_invalid, &pindexFirst);
-    if(gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER))
+    if(GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER))
     {
         LOCK(cs_main);
         CNodeState *nodestate = State(pfrom->GetId());
-        const CBlockIndex *pindexLast = ppindex == nullptr ? nullptr : *ppindex;
+        const CBlockIndex *pindexLast = ppindex == NULL ? NULL : *ppindex;
         nodestate->headers.addHeaders(pindexFirst, pindexLast);
         return nodestate->headers.updateState(state, ret);
     }
