@@ -258,11 +258,11 @@
         <translation>取引(&amp;T)</translation>
     </message>
     <message>
-        <source>Smart &amp;Contracts</source>
+        <source>Smart &amp;Contract</source>
         <translation>スマートコントラクト(&amp;C)</translation>
     </message>
     <message>
-        <source>Smart contracts</source>
+        <source>Smart contract</source>
         <translation>スマートコントラクトの作成や送信、呼出が出来ます。</translation>
     </message>
     <message>
@@ -270,7 +270,7 @@
         <translation>作成</translation>
     </message>
     <message>
-        <source>Send To</source>
+        <source>SendTo</source>
         <translation>送信</translation>
     </message>
     <message>
@@ -278,24 +278,12 @@
         <translation>呼出</translation>
     </message>
     <message>
-        <source>&amp;VRC Tokens</source>
+        <source>&amp;VRC Token</source>
         <translation>VRCトークン(&amp;V)</translation>
     </message>
     <message>
-        <source>VRC Tokens (send, receive or add Tokens in list)</source>
+        <source>VRC Tokens (send, receive or add Token in list)</source>
         <translation>VRCトークンの送信や受信、トークンの追加が出来ます。</translation>
-    </message>
-    <message>
-        <source>Send</source>
-        <translation>送信</translation>
-    </message>
-    <message>
-        <source>Receive</source>
-        <translation>受信</translation>
-    </message>
-    <message>
-        <source>Add Token</source>
-        <translation>トークンを追加</translation>
     </message>
     <message>
         <source>Browse transaction history</source>
@@ -4976,6 +4964,21 @@
     <message>
         <source>(no label)</source>
         <translation>(ラベル無し)</translation>
+    </message>
+</context>
+<context>
+    <name>QRCToken</name>
+    <message>
+        <source>Send</source>
+        <translation>送信</translation>
+    </message>
+    <message>
+        <source>Receive</source>
+        <translation>受信</translation>
+    </message>
+    <message>
+        <source>Add Token</source>
+        <translation>トークンを追加</translation>
     </message>
 </context>
 </TS>

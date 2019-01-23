@@ -857,8 +857,13 @@ int GetNumCores()
 
 std::string CopyrightHolders(const std::string& strPrefix)
 {
-    std::string strCopyrightHolders = strPrefix + strprintf(_(COPYRIGHT_HOLDERS), _(COPYRIGHT_HOLDERS_SUBSTITUTION));
-
+    unsigned short nCopyrightYear = boost::posix_time::second_clock::local_time().date().year();
+    std::string strCopyrightHolders;
+    strCopyrightHolders += "\n" + strprintf(strPrefix, 2018, nCopyrightYear) + " The VIPSTARCOIN Core developers";
+    strCopyrightHolders += "\n" + strprintf(strPrefix, 2009, nCopyrightYear) + " The Bitcoin Core developers";
+    strCopyrightHolders += "\n" + strprintf(strPrefix, 2014, nCopyrightYear) + " The HTMLCOIN Core developers";
+    strCopyrightHolders += "\n" + strprintf(strPrefix, 2016, nCopyrightYear) + " The Qtum Core developers";
+    return strCopyrightHolders;
     // Check for untranslated substitution to make sure Bitcoin Core copyright is not removed by accident
     if (strprintf(COPYRIGHT_HOLDERS, COPYRIGHT_HOLDERS_SUBSTITUTION).find("Bitcoin Core") == std::string::npos) {
         std::string strYear = strPrefix;
