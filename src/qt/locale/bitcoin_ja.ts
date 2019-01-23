@@ -282,7 +282,7 @@
         <translation>VRCトークン(&amp;V)</translation>
     </message>
     <message>
-        <source>VRC Tokens (send, receive or add Token in list)</source>
+        <source>VRC Token (send, receive or add Token in list)</source>
         <translation>VRCトークンの送信や受信、トークンの追加が出来ます。</translation>
     </message>
     <message>
@@ -4194,7 +4194,7 @@
         <translation>コントラクトを作成するために使用されるビップスターコインアドレス。</translation>
     </message>
     <message>
-        <source>Create Contract</source>
+        <source>CreateContract</source>
         <translation>コントラクト作成</translation>
     </message>
     <message>
@@ -4281,8 +4281,8 @@
         <translation type="unfinished">数量</translation>
     </message>
     <message>
-        <source>Send To Contract</source>
-        <translation type="unfinished">送信</translation>
+        <source>SendToContract</source>
+        <translation type="unfinished">コントラクト送信</translation>
     </message>
     <message>
         <source>Clear All</source>
@@ -4298,7 +4298,7 @@
     </message>
     <message>
         <source>The vipstarcoin address that will be used as sender.</source>
-        <translation>コントラクトを送信するために使用されるビップスターコインアドレス。</translation>
+        <translation>コントラクトを送信するために使用されるVIPSTARCOINアドレス。</translation>
     </message>
     <message>
         <source>Send To Contract</source>
@@ -4380,8 +4380,8 @@
         <translation type="unfinished">送信者アドレス</translation>
     </message>
     <message>
-        <source>Call Contract</source>
-        <translation type="unfinished">呼出</translation>
+        <source>CallContract</source>
+        <translation type="unfinished">コントラクト呼出</translation>
     </message>
     <message>
         <source>Clear All</source>
@@ -4397,7 +4397,7 @@
     </message>
     <message>
         <source>The vipstarcoin address that will be used as sender.</source>
-        <translation>送信者として使用されるビップスターコインアドレス。</translation>
+        <translation>送信者として使用されるVIPSTARCOINアドレス。</translation>
     </message>
     <message>
         <source>Call Contract</source>
@@ -4537,7 +4537,7 @@
         <translation type="unfinished">クリア</translation>
     </message>
     <message>
-        <source>(This is your wallet address which will be tied to the token for send/receive operations)</source>
+        <source>(This is your wallet address which will be tied to the token for send/receive oprations)</source>
         <translation>(これは、トークンの送受信操作に結びつくウォレットアドレスです)</translation>
     </message>
     <message>
