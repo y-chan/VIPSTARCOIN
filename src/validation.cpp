@@ -4320,9 +4320,6 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
 
         // Reject proof of work at height consensusParams.nLastPOWBlock
         int nHeight = pindexPrev->nHeight + 1;
-        if (block.IsProofOfWork() && nHeight > chainparams.GetConsensus().nLastPOWBlock)
-            return state.DoS(100, false, REJECT_INVALID, "reject-pow", false, strprintf("reject proof-of-work at height %d", nHeight));
-
         if(block.IsProofOfStake())
         {
             // Reject proof of stake before height COINBASE_MATURITY
