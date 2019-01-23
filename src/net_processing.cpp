@@ -337,10 +337,10 @@ CNodeState *State(NodeId pnode) {
     return &it->second;
 }
 
-bool ProcessNetBlockHeaders(CNode* pfrom, const std::vector<CBlockHeader>& block, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex=NULL, CBlockHeader *first_invalid=NULL)
+bool ProcessNetBlockHeaders(CNode* pfrom, const std::vector<CBlockHeader>& block, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex=NULL)
 {
     const CBlockIndex *pindexFirst = NULL;
-    bool ret = ProcessNewBlockHeaders(block, state, chainparams, ppindex, first_invalid, &pindexFirst);
+    bool ret = ProcessNewBlockHeaders(block, state, chainparams, ppindex, &pindexFirst);
     if(GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER))
     {
         LOCK(cs_main);
